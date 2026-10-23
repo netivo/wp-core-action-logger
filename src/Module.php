@@ -10,6 +10,7 @@ namespace Netivo\Module\ActionLogger;
 use Netivo\Module\ActionLogger\Listeners\AbstractListener;
 use Netivo\Module\ActionLogger\Listeners\AuthListener;
 use Netivo\Module\ActionLogger\Listeners\ContentListener;
+use Netivo\Module\ActionLogger\Listeners\SettingsListener;
 use Netivo\Module\ActionLogger\Listeners\SystemListener;
 use Netivo\Module\ActionLogger\Listeners\UserListener;
 use Netivo\Module\ActionLogger\Transport\Client;
@@ -162,6 +163,7 @@ class Module {
 			new ContentListener( $sink, $config ),
 			new SystemListener( $sink, $config ),
 			new UserListener( $sink, $config ),
+			new SettingsListener( $sink, $config ),
 		];
 	}
 
