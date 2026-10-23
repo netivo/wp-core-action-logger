@@ -19,6 +19,13 @@ abstract class TestCase extends PhpUnitTestCase {
 		Monkey\setUp();
 		Monkey\Functions\stubTranslationFunctions();
 		Monkey\Functions\stubEscapeFunctions();
+		Monkey\Functions\stubs(
+			[
+				'wp_unslash'          => null,
+				'sanitize_text_field' => null,
+				'sanitize_key'        => null,
+			]
+		);
 	}
 
 	protected function tearDown(): void {
