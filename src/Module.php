@@ -11,6 +11,7 @@ use Netivo\Module\ActionLogger\Listeners\AbstractListener;
 use Netivo\Module\ActionLogger\Listeners\AuthListener;
 use Netivo\Module\ActionLogger\Listeners\ContentListener;
 use Netivo\Module\ActionLogger\Listeners\SystemListener;
+use Netivo\Module\ActionLogger\Listeners\UserListener;
 use Netivo\Module\ActionLogger\Transport\Client;
 use Netivo\Module\ActionLogger\Transport\Dispatcher;
 use Netivo\Module\ActionLogger\Transport\EventSink;
@@ -160,6 +161,7 @@ class Module {
 			new AuthListener( $sink, $config ),
 			new ContentListener( $sink, $config ),
 			new SystemListener( $sink, $config ),
+			new UserListener( $sink, $config ),
 		];
 	}
 

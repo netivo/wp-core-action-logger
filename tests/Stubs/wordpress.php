@@ -35,6 +35,9 @@ if ( ! class_exists( 'WP_User' ) ) {
 		public string $user_login = '';
 		public string $user_email = '';
 		public string $display_name = '';
+		public string $user_nicename = '';
+		public string $user_url = '';
+		public string $user_pass = '';
 		/** @var string[] */
 		public array $roles = [];
 
