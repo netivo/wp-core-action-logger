@@ -84,8 +84,20 @@ class Status extends Page {
 
 		$prefix = property_exists( Page::class, 'menu_slug' ) ? '' : '_';
 		foreach ( $settings as $property => $value ) {
-			$this->{$prefix . $property} = $value;
+			$this->set_page_property( $prefix . $property, $value );
 		}
+	}
+
+	/**
+	 * Writes a page configuration property declared by the installed wp-core version.
+	 *
+	 * @param string $name  Property name (with or without the `_` prefix).
+	 * @param string $value Value.
+	 *
+	 * @return void
+	 */
+	private function set_page_property( string $name, string $value ): void {
+		$this->{$name} = $value;
 	}
 
 	/**

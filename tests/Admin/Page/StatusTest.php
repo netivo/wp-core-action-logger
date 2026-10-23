@@ -76,10 +76,13 @@ final class StatusTest extends TestCase {
 
 	public function test_registers_as_settings_subpage_with_the_installed_wp_core_property_names(): void {
 		Actions\expectAdded( 'admin_menu' )->once();
-		Actions\expectAdded( 'admin_init' )->once();
 
 		$page   = new Status( '/views', Config::from_array( [] ), $this->queue, $this->status, $this->client, $this->worker );
-		$prefix = property_exists( Page::class, 'menu_slug' ) ? '' : '_';
+		$modern = property_exists( Page::class, 'menu_slug' );
+		$prefix = $modern ? '' : '_';
+
+		// wp-core 1.4 saves on admin_init, 1.2 on init.
+		self::assertNotFalse( has_action( $modern ? 'admin_init' : 'init', [ $page, 'do_save' ] ) );
 
 		self::assertSame( 'subpage', ( new ReflectionProperty( Page::class, $prefix . 'type' ) )->getValue( $page ) );
 		self::assertSame( 'options-general.php', ( new ReflectionProperty( Page::class, $prefix . 'parent' ) )->getValue( $page ) );
