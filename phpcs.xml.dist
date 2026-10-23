@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<ruleset name="NetivoActionLogger">
+	<description>WordPress VIP coding standards for netivo/wp-core-action-logger.</description>
+
+	<file>src</file>
+	<file>views</file>
+
+	<arg name="extensions" value="php,phtml"/>
+	<arg value="sp"/>
+	<arg name="colors"/>
+
+	<config name="minimum_supported_wp_version" value="6.3"/>
+
+	<rule ref="WordPressVIPMinimum"/>
+	<rule ref="PHPCompatibility">
+		<config name="testVersion" value="8.2-"/>
+	</rule>
+</ruleset>
