@@ -36,6 +36,17 @@ final class Redactor {
 	private const MAX_DEPTH = 12;
 
 	/**
+	 * Credentials recognizable by shape inside free-form strings (whose key gave no hint):
+	 * site tokens, JWTs, bearer credentials and PEM private keys. Only the match is replaced.
+	 */
+	private const CREDENTIAL_PATTERNS = [
+		'/nt_live_[0-9a-f]{32}/i',
+		'/eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/',
+		'/\bBearer\s+[A-Za-z0-9._~+\/=-]{16,}/i',
+		'/-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/s',
+	];
+
+	/**
 	 * Returns a copy of the value with sensitive keys and card-like numbers masked.
 	 *
 	 * @param mixed $value Value to redact.
@@ -48,7 +59,7 @@ final class Redactor {
 			return self::REDACTED;
 		}
 		if ( is_string( $value ) ) {
-			return self::looks_like_card_number( $value ) ? self::REDACTED : $value;
+			return self::looks_like_card_number( $value ) ? self::REDACTED : self::mask_credentials( $value );
 		}
 		if ( is_object( $value ) ) {
 			$value = get_object_vars( $value );
@@ -76,6 +87,20 @@ final class Redactor {
 	 */
 	public static function is_sensitive_key( string $key ): bool {
 		return 1 === preg_match( self::SENSITIVE_KEY, $key );
+	}
+
+	/**
+	 * Replaces credential-shaped substrings with the redaction marker.
+	 *
+	 * @param string $value Free-form string.
+	 *
+	 * @return string
+	 */
+	public static function mask_credentials( string $value ): string {
+		$masked = preg_replace( self::CREDENTIAL_PATTERNS, self::REDACTED, $value );
+
+		// preg_replace() returns null on errors (e.g. invalid UTF-8); fail closed.
+		return null === $masked ? self::REDACTED : $masked;
 	}
 
 	/**

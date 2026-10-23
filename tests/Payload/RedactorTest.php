@@ -57,6 +57,25 @@ final class RedactorTest extends TestCase {
 		self::assertStringNotContainsString( 'leaf', (string) json_encode( Redactor::redact( $deep ) ) );
 	}
 
+	public function test_masks_credential_shaped_substrings_in_free_text(): void {
+		$token = 'nt_live_0123456789abcdef0123456789abcdef';
+		$jwt   = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U';
+
+		self::assertSame( [ 'note' => 'Configured key [REDACTED] on staging' ], Redactor::redact( [ 'note' => "Configured key {$token} on staging" ] ) );
+		self::assertSame( 'session=[REDACTED]', Redactor::redact( "session={$jwt}" ) );
+		self::assertSame( 'header was [REDACTED]', Redactor::redact( 'header was Bearer abcdefghijklmnop1234' ) );
+		self::assertSame(
+			'key: [REDACTED] end',
+			Redactor::redact( "key: -----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA\n-----END RSA PRIVATE KEY----- end" )
+		);
+	}
+
+	public function test_leaves_ordinary_strings_alone(): void {
+		$value = [ 'title' => 'Bearer of good news', 'slug' => 'nt_live_short', 'jwtish' => 'eyJ.eyJ.x' ];
+
+		self::assertSame( $value, Redactor::redact( $value ) );
+	}
+
 	public function test_detects_sensitive_key_names(): void {
 		foreach ( [ 'password', 'pwd', 'user_pass', 'auth_key', 'nonce', 'card_number', 'cvv', 'Authorization' ] as $key ) {
 			self::assertTrue( Redactor::is_sensitive_key( $key ), $key );
