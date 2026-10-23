@@ -96,3 +96,65 @@ if ( ! class_exists( 'WP_Term' ) ) {
 		}
 	}
 }
+
+if ( ! class_exists( 'wpdb' ) ) {
+	/**
+	 * Recording wpdb double: prepare() substitutes placeholders like the real
+	 * one, and every executed statement is kept in $queries. Results for reads
+	 * are queued per method in $results.
+	 */
+	class wpdb {
+		public string $prefix = 'wp_';
+		/** @var string[] */
+		public array $queries = [];
+		/** @var array<string, array<int, mixed>> */
+		public array $results = [ 'get_results' => [], 'get_var' => [], 'query' => [] ];
+
+		public function prepare( string $query, mixed ...$args ): string {
+			$i = 0;
+
+			return (string) preg_replace_callback(
+				'/%[isd]/',
+				static function ( array $match ) use ( &$i, $args ): string {
+					$value = $args[ $i++ ] ?? '';
+
+					return match ( $match[0] ) {
+						'%i' => '`' . $value . '`',
+						'%d' => (string) (int) $value,
+						default => "'" . addslashes( (string) $value ) . "'",
+					};
+				},
+				$query
+			);
+		}
+
+		public function query( string $query ): int|bool {
+			$this->queries[] = $query;
+
+			return array_shift( $this->results['query'] ) ?? 1;
+		}
+
+		/**
+		 * @return array<int, array<string, mixed>>|null
+		 */
+		public function get_results( string $query, string $output = 'OBJECT' ): ?array {
+			$this->queries[] = $query;
+
+			return array_shift( $this->results['get_results'] ) ?? [];
+		}
+
+		public function get_var( string $query ): mixed {
+			$this->queries[] = $query;
+
+			return array_shift( $this->results['get_var'] );
+		}
+
+		public function get_charset_collate(): string {
+			return 'DEFAULT CHARACTER SET utf8mb4';
+		}
+	}
+}
+
+if ( ! defined( 'ARRAY_A' ) ) {
+	define( 'ARRAY_A', 'ARRAY_A' );
+}
