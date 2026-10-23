@@ -13,6 +13,7 @@ use Netivo\Module\ActionLogger\Listeners\ContentListener;
 use Netivo\Module\ActionLogger\Listeners\SettingsListener;
 use Netivo\Module\ActionLogger\Listeners\SystemListener;
 use Netivo\Module\ActionLogger\Listeners\UserListener;
+use Netivo\Module\ActionLogger\Listeners\WooCommerceListener;
 use Netivo\Module\ActionLogger\Transport\Client;
 use Netivo\Module\ActionLogger\Transport\Dispatcher;
 use Netivo\Module\ActionLogger\Transport\EventSink;
@@ -158,13 +159,20 @@ class Module {
 	 * @return AbstractListener[]
 	 */
 	protected function listeners( EventSink $sink, Config $config ): array {
-		return [
+		$listeners = [
 			new AuthListener( $sink, $config ),
 			new ContentListener( $sink, $config ),
 			new SystemListener( $sink, $config ),
 			new UserListener( $sink, $config ),
 			new SettingsListener( $sink, $config ),
 		];
+
+		// Plugins are loaded before after_setup_theme, so WooCommerce is detectable here.
+		if ( class_exists( 'WooCommerce' ) ) {
+			$listeners[] = new WooCommerceListener( $sink, $config );
+		}
+
+		return $listeners;
 	}
 
 	/**
