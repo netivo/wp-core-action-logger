@@ -66,6 +66,9 @@ if ( ! class_exists( 'WP_Post' ) ) {
 		public int $post_parent = 0;
 		public string $post_mime_type = '';
 		public string $post_password = '';
+		public string $post_date = '2026-10-23 10:00:00';
+		public int $menu_order = 0;
+		public string $comment_status = 'open';
 
 		/**
 		 * @param array<string, mixed> $data
@@ -85,6 +88,7 @@ if ( ! class_exists( 'WP_Term' ) ) {
 		public string $slug = '';
 		public string $taxonomy = '';
 		public int $parent = 0;
+		public string $description = '';
 
 		/**
 		 * @param array<string, mixed> $data
