@@ -32,7 +32,7 @@ final class QueueTest extends TestCase {
 		Functions\expect( 'dbDelta' )
 			->once()
 			->with( \Mockery::on( static fn ( string $sql ): bool => str_contains( $sql, 'CREATE TABLE wp_nt_action_log_queue' ) && str_contains( $sql, 'PRIMARY KEY  (id)' ) ) );
-		Functions\expect( 'update_option' )->once()->with( Queue::VERSION_OPTION, Queue::DB_VERSION, false );
+		Functions\expect( 'update_option' )->once()->with( Queue::VERSION_OPTION, Queue::DB_VERSION, true );
 
 		$this->queue->install();
 		$this->queue->install();

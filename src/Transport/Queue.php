@@ -102,7 +102,8 @@ class Queue {
 ) {$charset};"
 		);
 
-		update_option( self::VERSION_OPTION, self::DB_VERSION, false );
+		// Autoloaded: install() runs on every request and must not cost a query.
+		update_option( self::VERSION_OPTION, self::DB_VERSION, true );
 	}
 
 	/**
