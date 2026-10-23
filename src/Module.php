@@ -8,6 +8,7 @@
 namespace Netivo\Module\ActionLogger;
 
 use Netivo\Module\ActionLogger\Listeners\AbstractListener;
+use Netivo\Module\ActionLogger\Listeners\AuthListener;
 use Netivo\Module\ActionLogger\Transport\Client;
 use Netivo\Module\ActionLogger\Transport\Dispatcher;
 use Netivo\Module\ActionLogger\Transport\EventSink;
@@ -153,7 +154,9 @@ class Module {
 	 * @return AbstractListener[]
 	 */
 	protected function listeners( EventSink $sink, Config $config ): array {
-		return [];
+		return [
+			new AuthListener( $sink, $config ),
+		];
 	}
 
 	/**
