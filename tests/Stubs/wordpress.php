@@ -162,3 +162,38 @@ if ( ! class_exists( 'wpdb' ) ) {
 if ( ! defined( 'ARRAY_A' ) ) {
 	define( 'ARRAY_A', 'ARRAY_A' );
 }
+
+if ( ! class_exists( 'WP_Theme' ) ) {
+	class WP_Theme {
+		/**
+		 * @param array<string, string> $headers
+		 */
+		public function __construct( private string $stylesheet, private array $headers = [] ) {
+		}
+
+		public function get( string $header ): string|false {
+			return $this->headers[ $header ] ?? false;
+		}
+
+		public function get_stylesheet(): string {
+			return $this->stylesheet;
+		}
+	}
+}
+
+if ( ! class_exists( 'WP_Upgrader' ) ) {
+	class WP_Upgrader {
+		/** @var array<string, mixed>|false */
+		public $result = [];
+	}
+
+	class Plugin_Upgrader extends WP_Upgrader {
+		/** @var array<string, mixed> */
+		public $new_plugin_data = [];
+	}
+
+	class Theme_Upgrader extends WP_Upgrader {
+		/** @var array<string, mixed> */
+		public $new_theme_data = [];
+	}
+}
