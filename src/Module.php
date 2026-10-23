@@ -7,6 +7,7 @@
 
 namespace Netivo\Module\ActionLogger;
 
+use Netivo\Module\ActionLogger\Admin\Admin;
 use Netivo\Module\ActionLogger\Listeners\AbstractListener;
 use Netivo\Module\ActionLogger\Listeners\AuthListener;
 use Netivo\Module\ActionLogger\Listeners\ContentListener;
@@ -181,6 +182,11 @@ class Module {
 	 * @return void
 	 */
 	protected function boot_admin(): void {
+		if ( ! is_admin() || null === $this->config || null === $this->queue || null === $this->status || null === $this->client || null === $this->worker ) {
+			return;
+		}
+
+		new Admin( $this->config, $this->queue, $this->status, $this->client, $this->worker );
 	}
 
 	/**
