@@ -3,7 +3,6 @@
   "description": "Netivo Action Logger module for WordPress to capture and stream admin user actions to central audit telemetry.",
   "minimum-stability": "stable",
   "license": "proprietary",
-  "version": "1.0.0",
   "authors": [
     {
       "name": "netivo",

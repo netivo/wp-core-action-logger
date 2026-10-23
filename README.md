@@ -16,9 +16,20 @@ This module captures administrative actions on WordPress websites and streams th
 
 ## Installation
 
+The package and its `netivo/wp-core` dependency are distributed from Netivo's Git repositories. Composer ignores the `repositories` of dependencies, so the theme's own `composer.json` must list both:
+
+```json
+"repositories": [
+    { "type": "vcs", "url": "git@github.com:netivo/wp-core-action-logger.git" },
+    { "type": "vcs", "url": "git@github.com:netivo/wp-core.git" }
+]
+```
+
 ```bash
 composer require netivo/wp-core-action-logger
 ```
+
+Releases are the `v*.*.*` tags mirrored from the monorepo; `composer.json` deliberately has no `version` field, so the tag is the version.
 
 Then create the module once from the theme, e.g. in `functions.php` or the theme class:
 
