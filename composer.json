@@ -1,0 +1,55 @@
+{
+  "name": "netivo/wp-core-action-logger",
+  "description": "Netivo Action Logger module for WordPress to capture and stream admin user actions to central audit telemetry.",
+  "minimum-stability": "stable",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "netivo",
+      "email": "biuro@netivo.pl"
+    }
+  ],
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "git@github.com:netivo/wp-core.git"
+    }
+  ],
+  "require": {
+    "php": "^8.2 || ^8.3 || ^8.4 || ^8.5",
+    "netivo/wp-core": "^1.1"
+  },
+  "require-dev": {
+    "automattic/vipwpcs": "^3.1",
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.2",
+    "phpcompatibility/php-compatibility": "10.0.0-alpha2",
+    "phpunit/phpunit": "^10.5 || ^11.5",
+    "brain/monkey": "^2.6",
+    "phpstan/phpstan": "^2.0",
+    "szepeviktor/phpstan-wordpress": "^2.0",
+    "php-stubs/woocommerce-stubs": "^11.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "Netivo\\Module\\ActionLogger\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Netivo\\Module\\ActionLogger\\Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  },
+  "scripts": {
+    "test": [
+      "@php -d zend.enable_gc=0 vendor/bin/phpunit"
+    ],
+    "phpstan": "vendor/bin/phpstan analyse",
+    "lint": "vendor/bin/phpcs --standard=phpcs.xml.dist",
+    "compatibility": "vendor/bin/phpcs -p src/ --standard=PHPCompatibility --runtime-set testVersion 8.2-8.5"
+  }
+}

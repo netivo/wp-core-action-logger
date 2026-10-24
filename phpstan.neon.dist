@@ -1,0 +1,17 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 7
+    paths:
+        - src
+    phpVersion:
+        min: 80200
+        max: 80500
+    scanFiles:
+        - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+    ignoreErrors:
+        # wp-core reads #[Netivo\Attributes\View] by name through reflection; no class is declared for it.
+        -
+            identifier: attribute.notFound
+            message: '#Netivo\\Attributes\\View#'
