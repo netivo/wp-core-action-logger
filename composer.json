@@ -11,8 +11,8 @@
   ],
   "repositories": [
     {
-      "type": "vcs",
-      "url": "git@github.com:netivo/wp-core.git"
+      "type": "composer",
+      "url": "https://packagist.netivo.pl"
     }
   ],
   "require": {
