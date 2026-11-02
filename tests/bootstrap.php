@@ -9,6 +9,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', sys_get_temp_dir() . '/' );
 }
 
+// A dedicated, cleanable sandbox for tests that touch the filesystem (FileScanner,
+// FileTailer), kept out of ABSPATH so it never collides with its parent directory.
+if ( ! defined( 'WP_CONTENT_DIR' ) ) {
+	define( 'WP_CONTENT_DIR', sys_get_temp_dir() . '/nt-al-tests/wp-content' );
+}
+
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/Stubs/wordpress.php';
 require_once __DIR__ . '/Stubs/woocommerce.php';

@@ -34,17 +34,65 @@ class Client {
 	}
 
 	/**
-	 * Sends one batch and classifies the outcome.
+	 * Sends one batch of audit events and classifies the outcome.
 	 *
 	 * @param array<int|string, array<string, mixed>|object> $events Serialized events.
 	 *
 	 * @return DeliveryResult
 	 */
 	public function send( array $events ): DeliveryResult {
+		return $this->post( $this->config->endpoint(), 'events', $events );
+	}
+
+	/**
+	 * Sends one batch of error-log events and classifies the outcome.
+	 *
+	 * @param array<int|string, array<string, mixed>|object> $errors Serialized error events.
+	 *
+	 * @return DeliveryResult
+	 */
+	public function send_errors( array $errors ): DeliveryResult {
+		return $this->post( $this->config->errors_endpoint(), 'errors', $errors );
+	}
+
+	/**
+	 * Sends audit events and sorts their keys by outcome. When the API rejects a
+	 * batch, it is bisected so that only the events it actually refuses are given up.
+	 *
+	 * @param array<int|string, array<string, mixed>|object> $events Serialized events keyed by caller ID.
+	 *
+	 * @return array{delivered: array<int, int|string>, failed: array<int, int|string>, rejected: array<int, int|string>, result: DeliveryResult}
+	 */
+	public function deliver( array $events ): array {
+		return $this->deliver_with( $events, [ $this, 'send' ] );
+	}
+
+	/**
+	 * Sends error events and sorts their keys by outcome, with the same bisection
+	 * behaviour as deliver().
+	 *
+	 * @param array<int|string, array<string, mixed>|object> $errors Serialized error events keyed by caller ID.
+	 *
+	 * @return array{delivered: array<int, int|string>, failed: array<int, int|string>, rejected: array<int, int|string>, result: DeliveryResult}
+	 */
+	public function deliver_errors( array $errors ): array {
+		return $this->deliver_with( $errors, [ $this, 'send_errors' ] );
+	}
+
+	/**
+	 * POSTs one batch to an endpoint, wrapped under the given key, and classifies the outcome.
+	 *
+	 * @param string                                           $endpoint Full ingestion endpoint URL.
+	 * @param string                                           $key      Wrapper key (`events` or `errors`).
+	 * @param array<int|string, array<string, mixed>|object>   $items    Serialized items.
+	 *
+	 * @return DeliveryResult
+	 */
+	private function post( string $endpoint, string $key, array $items ): DeliveryResult {
 		$body = wp_json_encode(
 			[
 				'system_type' => 'wordpress',
-				'events'      => array_values( $events ),
+				$key          => array_values( $items ),
 			]
 		);
 		if ( false === $body ) {
@@ -52,7 +100,7 @@ class Client {
 		}
 
 		$response = wp_remote_post(
-			$this->config->endpoint(),
+			$endpoint,
 			[
 				'blocking'    => true,
 				'timeout'     => $this->config->timeout(),
@@ -85,14 +133,16 @@ class Client {
 	}
 
 	/**
-	 * Sends events and sorts their keys by outcome. When the API rejects a batch,
-	 * it is bisected so that only the events it actually refuses are given up.
+	 * Shared bisection logic behind deliver() and deliver_errors(): sends one
+	 * batch via `$send`, and on a partial rejection, recursively splits it so
+	 * only the events the API actually refuses are given up.
 	 *
 	 * @param array<int|string, array<string, mixed>|object> $events Serialized events keyed by caller ID.
+	 * @param callable(array<int|string, array<string, mixed>|object>): DeliveryResult $send Sends one batch.
 	 *
 	 * @return array{delivered: array<int, int|string>, failed: array<int, int|string>, rejected: array<int, int|string>, result: DeliveryResult}
 	 */
-	public function deliver( array $events ): array {
+	private function deliver_with( array $events, callable $send ): array {
 		$report = [
 			'delivered' => [],
 			'failed'    => [],
@@ -103,7 +153,7 @@ class Client {
 			return $report;
 		}
 
-		$result = $this->send( $events );
+		$result = $send( $events );
 
 		if ( $result->is_delivered() ) {
 			$report['delivered'] = array_keys( $events );
@@ -121,7 +171,7 @@ class Client {
 
 		$half = intdiv( count( $events ), 2 );
 		foreach ( [ array_slice( $events, 0, $half, true ), array_slice( $events, $half, null, true ) ] as $part ) {
-			$sub = $this->deliver( $part );
+			$sub = $this->deliver_with( $part, $send );
 
 			$report['delivered'] = array_merge( $report['delivered'], $sub['delivered'] );
 			$report['failed']    = array_merge( $report['failed'], $sub['failed'] );

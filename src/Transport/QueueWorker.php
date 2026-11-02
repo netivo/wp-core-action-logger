@@ -17,19 +17,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class QueueWorker
  *
- * WP-Cron job that drains the local queue in batches. It stops at the first
+ * WP-Cron job that drains a local Queue in batches. It stops at the first
  * unavailable response (the remaining rows wait for their backoff), never runs
- * twice at once, and gives up on events that failed too many times.
+ * twice at once, and gives up on events that failed too many times. The hook,
+ * lock key and Client delivery method are parametrized so the same worker
+ * mechanic drains both the audit-event queue and the error-event queue,
+ * independently (one slow/unavailable queue never blocks the other).
  */
 class QueueWorker {
 
 	/**
-	 * Cron hook name.
+	 * Default cron hook name.
 	 */
 	public const HOOK = 'nt_action_logger_flush_queue';
 
 	/**
-	 * Custom cron schedule name.
+	 * Custom cron schedule name, shared by every QueueWorker instance.
 	 */
 	public const SCHEDULE = 'nt_action_logger_five_minutes';
 
@@ -54,21 +57,27 @@ class QueueWorker {
 	private const TIME_BUDGET = 20;
 
 	/**
-	 * Transient preventing overlapping runs.
+	 * Default transient preventing overlapping runs.
 	 */
-	private const LOCK = 'nt_action_logger_worker_lock';
+	public const LOCK = 'nt_action_logger_worker_lock';
 
 	/**
 	 * QueueWorker constructor.
 	 *
-	 * @param Queue  $queue  Local fallback queue.
-	 * @param Client $client Ingestion API client.
-	 * @param Status $status Delivery status store.
+	 * @param Queue  $queue          Local fallback queue to drain.
+	 * @param Client $client         Ingestion API client.
+	 * @param Status $status         Delivery status store.
+	 * @param string $hook           Cron hook name.
+	 * @param string $lock_key       Transient key preventing overlapping runs.
+	 * @param string $deliver_method Client method to call with a batch of events (`deliver` or `deliver_errors`).
 	 */
 	public function __construct(
 		private readonly Queue $queue,
 		private readonly Client $client,
-		private readonly Status $status
+		private readonly Status $status,
+		private readonly string $hook = self::HOOK,
+		private readonly string $lock_key = self::LOCK,
+		private readonly string $deliver_method = 'deliver'
 	) {
 	}
 
@@ -79,7 +88,7 @@ class QueueWorker {
 	 */
 	public function register(): void {
 		add_filter( 'cron_schedules', [ $this, 'add_schedule' ] ); // phpcs:ignore WordPress.WP.CronInterval.CronSchedulesInterval -- 5 minutes keeps the queue backlog short.
-		add_action( self::HOOK, [ $this, 'run' ] );
+		add_action( $this->hook, [ $this, 'run' ] );
 	}
 
 	/**
@@ -104,8 +113,8 @@ class QueueWorker {
 	 * @return void
 	 */
 	public function schedule(): void {
-		if ( false === wp_next_scheduled( self::HOOK ) ) {
-			wp_schedule_event( time() + MINUTE_IN_SECONDS, self::SCHEDULE, self::HOOK );
+		if ( false === wp_next_scheduled( $this->hook ) ) {
+			wp_schedule_event( time() + MINUTE_IN_SECONDS, self::SCHEDULE, $this->hook );
 		}
 	}
 
@@ -115,7 +124,7 @@ class QueueWorker {
 	 * @return void
 	 */
 	public function unschedule(): void {
-		wp_clear_scheduled_hook( self::HOOK );
+		wp_clear_scheduled_hook( $this->hook );
 	}
 
 	/**
@@ -133,10 +142,10 @@ class QueueWorker {
 	 * @return int Number of delivered events.
 	 */
 	public function drain(): int {
-		if ( false !== get_transient( self::LOCK ) ) {
+		if ( false !== get_transient( $this->lock_key ) ) {
 			return 0;
 		}
-		set_transient( self::LOCK, time(), 2 * self::TIME_BUDGET );
+		set_transient( $this->lock_key, time(), 2 * self::TIME_BUDGET );
 
 		$delivered = 0;
 		try {
@@ -150,7 +159,7 @@ class QueueWorker {
 				}
 
 				$events = array_column( $rows, 'payload', 'id' );
-				$report = $this->client->deliver( $events );
+				$report = $this->client->{$this->deliver_method}( $events );
 
 				$this->queue->delete( array_map( 'intval', array_merge( $report['delivered'], $report['rejected'] ) ) );
 				$delivered += count( $report['delivered'] );
@@ -174,7 +183,7 @@ class QueueWorker {
 		} catch ( Throwable $e ) {
 			unset( $e );
 		} finally {
-			delete_transient( self::LOCK );
+			delete_transient( $this->lock_key );
 		}
 
 		return $delivered;

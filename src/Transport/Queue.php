@@ -17,9 +17,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class Queue
  *
- * Local fallback storage (`{prefix}nt_action_log_queue`) for events that could not be
- * delivered. Rows carry a retry counter and the time of the next attempt so the cron
- * worker can back off while the API is unavailable.
+ * Local fallback storage (`{prefix}nt_action_log_queue` by default) for events
+ * that could not be delivered. Rows carry a retry counter and the time of the
+ * next attempt so the cron worker can back off while the API is unavailable.
+ * The table name and version option are parametrized so ErrorQueue can reuse
+ * the same generic, payload-agnostic storage for error events, in a table of
+ * its own.
  *
  * phpcs:disable WordPress.DB.DirectDatabaseQuery -- custom table; caching would serve stale queue state.
  */
@@ -31,7 +34,12 @@ class Queue {
 	public const DB_VERSION = '1';
 
 	/**
-	 * Option storing the installed schema version.
+	 * Default table suffix (after `$wpdb->prefix`).
+	 */
+	public const TABLE = 'nt_action_log_queue';
+
+	/**
+	 * Default option storing the installed schema version.
 	 */
 	public const VERSION_OPTION = 'nt_action_logger_queue_version';
 
@@ -56,9 +64,15 @@ class Queue {
 	/**
 	 * Queue constructor.
 	 *
-	 * @param wpdb|null $db Database connection; defaults to the global `$wpdb`.
+	 * @param wpdb|null $db             Database connection; defaults to the global `$wpdb`.
+	 * @param string    $table_suffix   Table name after `$wpdb->prefix`.
+	 * @param string    $version_option Option name storing the installed schema version.
 	 */
-	public function __construct( ?wpdb $db = null ) {
+	public function __construct(
+		?wpdb $db = null,
+		private readonly string $table_suffix = self::TABLE,
+		private readonly string $version_option = self::VERSION_OPTION
+	) {
 		global $wpdb;
 		$this->db = $db ?? $wpdb;
 	}
@@ -69,7 +83,7 @@ class Queue {
 	 * @return string
 	 */
 	public function table(): string {
-		return $this->db->prefix . 'nt_action_log_queue';
+		return $this->db->prefix . $this->table_suffix;
 	}
 
 	/**
@@ -78,7 +92,7 @@ class Queue {
 	 * @return void
 	 */
 	public function install(): void {
-		if ( self::DB_VERSION === get_option( self::VERSION_OPTION ) ) {
+		if ( self::DB_VERSION === get_option( $this->version_option ) ) {
 			return;
 		}
 
@@ -103,7 +117,7 @@ class Queue {
 		);
 
 		// Autoloaded: install() runs on every request and must not cost a query.
-		update_option( self::VERSION_OPTION, self::DB_VERSION, true );
+		update_option( $this->version_option, self::DB_VERSION, true );
 	}
 
 	/**

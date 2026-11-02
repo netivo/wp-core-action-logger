@@ -338,6 +338,15 @@ final class Config {
 	}
 
 	/**
+	 * Full URL of the error-log ingestion endpoint.
+	 *
+	 * @return string
+	 */
+	public function errors_endpoint(): string {
+		return $this->endpoint() . '/errors';
+	}
+
+	/**
 	 * Lists configuration problems that prevent delivery.
 	 *
 	 * @return string[]
