@@ -4,4 +4,6 @@
 /.gitignore         export-ignore
 /phpcs.xml.dist     export-ignore
 /phpstan.neon.dist  export-ignore
+/phpstan-stubs.php  export-ignore
+/patchwork.json     export-ignore
 /phpunit.xml.dist   export-ignore

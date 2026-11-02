@@ -9,6 +9,7 @@ use Brain\Monkey\Functions;
 use Netivo\Module\ActionLogger\Config;
 use Netivo\Module\ActionLogger\Listeners\AbstractListener;
 use Netivo\Module\ActionLogger\Module;
+use Netivo\Module\ActionLogger\Transport\ErrorQueue;
 use Netivo\Module\ActionLogger\Transport\EventSink;
 use Netivo\Module\ActionLogger\Transport\Queue;
 use Netivo\Module\ActionLogger\Transport\QueueWorker;
@@ -24,7 +25,9 @@ final class ModuleTest extends TestCase {
 		}
 		$GLOBALS['wpdb'] = new wpdb();
 		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
-		Functions\when( 'get_option' )->alias( static fn ( string $name ) => Queue::VERSION_OPTION === $name ? Queue::DB_VERSION : false );
+		Functions\when( 'get_option' )->alias(
+			static fn ( string $name ) => in_array( $name, [ Queue::VERSION_OPTION, ErrorQueue::VERSION_OPTION ], true ) ? Queue::DB_VERSION : false
+		);
 		Functions\when( 'is_admin' )->justReturn( false );
 	}
 
@@ -48,8 +51,13 @@ final class ModuleTest extends TestCase {
 
 	public function test_active_module_schedules_worker_and_registers_listeners(): void {
 		Functions\when( 'did_action' )->justReturn( 1 );
-		Functions\expect( 'wp_next_scheduled' )->once()->with( QueueWorker::HOOK )->andReturn( false );
-		Functions\expect( 'wp_schedule_event' )->once();
+		// The audit, error-queue and error-collector workers each schedule their own
+		// cron hook; only the audit worker's exact scheduling is asserted here.
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\when( 'wp_schedule_event' )->justReturn( true );
+		// RuntimeInterceptor::register() installs a real exception handler for the
+		// request's lifetime; stub it so this test doesn't leak that global state.
+		Functions\when( 'set_exception_handler' )->justReturn( null );
 		Actions\expectAdded( QueueWorker::HOOK )->once();
 
 		$module = new class( self::active_config() ) extends Module {
@@ -71,18 +79,28 @@ final class ModuleTest extends TestCase {
 		};
 
 		self::assertNotNull( $module->dispatcher() );
+		self::assertNotNull( $module->error_dispatcher() );
 		self::assertSame( 1, $module->registered );
 	}
 
 	public function test_inactive_module_captures_nothing_and_unschedules_worker(): void {
 		Functions\when( 'did_action' )->justReturn( 1 );
-		Functions\expect( 'wp_clear_scheduled_hook' )->once()->with( QueueWorker::HOOK );
+		// The audit, error-queue and error-collector workers are all unscheduled.
+		$cleared = [];
+		Functions\when( 'wp_clear_scheduled_hook' )->alias(
+			static function ( string $hook ) use ( &$cleared ): bool {
+				$cleared[] = $hook;
+
+				return true;
+			}
+		);
 		Functions\expect( 'wp_schedule_event' )->never();
 
 		$module = new Module( Config::from_array( [ 'enabled' => false ] ) );
 
 		self::assertNull( $module->dispatcher() );
 		self::assertFalse( $module->config()?->is_active() );
+		self::assertContains( QueueWorker::HOOK, $cleared );
 	}
 
 	public function test_boot_runs_once_and_never_throws(): void {
