@@ -49,6 +49,23 @@ class SettingsListener extends AbstractListener {
 	];
 
 	/**
+	 * Options the `netivo_action_logger_tracked_options` filter can never
+	 * remove tracking for. Any plugin or theme active on the same site can
+	 * register a callback on that filter, so without this floor a co-installed
+	 * plugin could silently suppress the audit log entry for its own
+	 * privilege-escalating change to one of these options (the filter may
+	 * still be used to add extra tracked options; it just cannot take away
+	 * this baseline set).
+	 */
+	private const ALWAYS_TRACKED = [
+		'siteurl'            => 'critical',
+		'home'               => 'critical',
+		'admin_email'        => 'warning',
+		'users_can_register' => 'warning',
+		'default_role'       => 'warning',
+	];
+
+	/**
 	 * Hooks the listener into WordPress.
 	 *
 	 * @return void
@@ -67,12 +84,14 @@ class SettingsListener extends AbstractListener {
 	 * @return void
 	 */
 	public function option_updated( string $option, mixed $old_value, mixed $value ): void {
-		/**
-		 * Filters the options tracked by the Action Logger, as option name => severity.
-		 *
-		 * @param array<string, string> $options Tracked options.
-		 */
+		// Filters the options tracked by the Action Logger, as option name =>
+		// severity (netivo_action_logger_tracked_options); not documented
+		// inline with a @param tag, since the result is validated below rather
+		// than trusted -- any other plugin on the site can register a callback
+		// here. ALWAYS_TRACKED is merged back in afterward so a filter callback
+		// can only add tracked options, never remove the baseline set.
 		$tracked = apply_filters( 'netivo_action_logger_tracked_options', self::TRACKED_OPTIONS );
+		$tracked = is_array( $tracked ) ? array_merge( $tracked, self::ALWAYS_TRACKED ) : self::ALWAYS_TRACKED;
 		if ( ! isset( $tracked[ $option ] ) ) {
 			return;
 		}
