@@ -48,7 +48,7 @@
     "test": [
       "@php -d zend.enable_gc=0 vendor/bin/phpunit"
     ],
-    "phpstan": "vendor/bin/phpstan analyse",
+    "phpstan": "vendor/bin/phpstan analyse --memory-limit=1G",
     "lint": "vendor/bin/phpcs --standard=phpcs.xml.dist",
     "compatibility": "vendor/bin/phpcs -p src/ --standard=PHPCompatibility --runtime-set testVersion 8.2-8.5"
   }
