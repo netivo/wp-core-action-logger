@@ -53,6 +53,7 @@ class FileTailer {
 	 * @return array{text: string}|null Null when the file cannot be stat'd (e.g. disappeared).
 	 */
 	public function read( string $path ): ?array {
+		clearstatcache( true, $path );
 		$size  = @filesize( $path ); // phpcs:ignore Generic.PHP.NoSilencedErrors.Forbidden -- a file that disappears mid-cycle must not raise a warning.
 		$mtime = @filemtime( $path ); // phpcs:ignore Generic.PHP.NoSilencedErrors.Forbidden -- see above.
 		if ( false === $size || false === $mtime ) {

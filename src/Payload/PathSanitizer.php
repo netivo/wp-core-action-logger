@@ -73,7 +73,12 @@ final class PathSanitizer {
 		$abspath = rtrim( str_replace( '\\', '/', ABSPATH ), '/' );
 		$parent  = rtrim( str_replace( '\\', '/', dirname( ABSPATH ) ), '/' );
 
-		$roots = array_unique( [ $abspath, $parent ] );
+		$roots = array_values(
+			array_filter(
+				array_unique( [ $abspath, $parent ] ),
+				static fn ( string $root ): bool => '' !== $root && '/' !== $root
+			)
+		);
 		usort( $roots, static fn ( string $a, string $b ): int => strlen( $b ) <=> strlen( $a ) );
 
 		return $roots;

@@ -6,7 +6,7 @@
 
 // Ensure ABSPATH is defined before loading any code that checks it.
 if ( ! defined( 'ABSPATH' ) ) {
-	define( 'ABSPATH', sys_get_temp_dir() . '/' );
+	define( 'ABSPATH', sys_get_temp_dir() . '/nt-al-tests/wordpress/' );
 }
 
 // A dedicated, cleanable sandbox for tests that touch the filesystem (FileScanner,
